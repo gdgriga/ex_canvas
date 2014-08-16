@@ -14,18 +14,20 @@ defmodule ExCanvas do
 
   def init(opts) do
     Agent.start(fn -> HashSet.new end, name: :clients)
-    Process.register(spawn(&say/0), :ex_canvas_say)  # send({:ex_canvas_say, Node}, msg)
+    Process.register(spawn(&client_cast/0), :ex_canvas_say)
     Node.start(:server, :shortnames)
     Node.set_cookie(:ex_canvas_cookie)
     info("Running on http://localhost:4000")
     opts
   end
 
-  defp say do
+  defp client_cast do
     receive do
       msg ->
-        Agent.cast(:clients, &Enum.each(&1, fn client_pid -> send(client_pid, msg) end))
-        say
+        clients = Agent.get(:clients, fn id -> id end)
+        debug("Sending to #{Enum.count(clients)} client(s)")
+        Enum.each(clients, &send(&1, msg))
+        client_cast
     end
   end
 
@@ -36,40 +38,34 @@ defmodule ExCanvas do
   end
 
   get "/events" do
-    Agent.update(:clients, &Set.put(&1, self()))
-    conn = conn
+    pid = self()
+    Agent.update(:clients, &Set.put(&1, pid))
+    conn
     |> put_resp_content_type("text/event-stream")
     |> send_chunked(200)
-
-    json = :jsx.encode([x: 50, y: 50, text: "hello"])
-    chunk(conn, ["data: ", json, "\n\n"])
-
-    json = :jsx.encode([x: 70, y: 100, text: "world"])
-    chunk(conn, ["data: ", json, "\n\n"])
-
-    canvas_loop(conn)
-  end
-
-  put "/say" do
-    {msg, conn} = case read_body(conn) do
-      {:ok, msg, conn}   -> {msg, conn}
-      {:more, msg, conn} -> {"#{msg}...", conn}
-      {:error, reason}   -> {"error: #{reason}", conn}
-    end
-    debug("/say read: '#{msg}'")
-    send(:ex_canvas_say, msg)
-    send_resp(conn, 201, "message queued\n")
+    |> canvas_loop
   end
 
   defp canvas_loop(conn) do
     receive do
       {:data, data} ->
         json = :jsx.encode(data)
-        case chunk(conn, ["data: ", json, "\n\n"]) do
+        debug("Sending to client: #{json}")
+        case chunk(conn, "data: #{json}\n\n") do
           {:ok, conn} -> canvas_loop(conn)
-          _ -> debug("Failed to send event: " <> json); conn
+          _ -> debug("Failed to send event: #{json}"); conn
         end
     end
+  end
+
+  put "/say" do
+    {text, conn} = case read_body(conn) do
+      {:ok, msg, conn}   -> {msg, conn}
+      {:more, msg, conn} -> {"#{msg}...", conn}
+      {:error, reason}   -> {"error: #{reason}", conn}
+    end
+    send(:ex_canvas_say, {:data, [x: 100, y: 100, text: text]})
+    send_resp(conn, 201, "message queued\n")
   end
 
   match _ do
