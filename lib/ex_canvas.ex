@@ -8,9 +8,15 @@ defmodule ExCanvas do
   plug :match
   plug :dispatch
 
+  def main do
+    Plug.Adapters.Cowboy.http(ExCanvas, [])
+  end
+
   def init(opts) do
     Agent.start(fn -> HashSet.new end, name: :clients)
     Process.register(spawn(&say/0), :ex_canvas_say)  # send({:ex_canvas_say, Node}, msg)
+    Node.start(:server, :shortnames)
+    Node.set_cookie(:ex_canvas_cookie)
     info("Running on http://localhost:4000")
     opts
   end
@@ -70,5 +76,3 @@ defmodule ExCanvas do
     send_resp(conn, 404, "not found\n")
   end
 end
-
-Plug.Adapters.Cowboy.http ExCanvas, []

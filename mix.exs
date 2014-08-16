@@ -20,6 +20,7 @@ defmodule ExCanvas.Mixfile do
   end
 
   defp aliases do
-    [r: "run --no-halt lib/ex_canvas.ex"]
+    [r: "run --no-halt -e ExCanvas.main",
+     c: "run -e ExCanvasClient.send(:test)"]
   end
 end
