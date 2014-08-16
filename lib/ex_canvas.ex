@@ -1,16 +1,21 @@
 defmodule ExCanvas do
   import Plug.Conn
+  use Plug.Router
 
-  def init(opts) do
-    opts
+  plug Plug.Static, at: "/", from: :ex_canvas
+  plug :match
+  plug :dispatch
+
+  get "/" do
+    conn
+    |> put_resp_content_type("text/html")
+    |> send_file(200, "priv/index.html")
   end
 
-  def call(conn, _opts) do
-    conn
-    |> put_resp_content_type("text/plain")
-    |> send_resp(200, "Hello world")
+  match _ do
+    send_resp(conn, 404, "not found")
   end
 end
 
-IO.puts "Running MyPlug with Cowboy on http://localhost:4000"
+IO.puts "Running on http://localhost:4000"
 Plug.Adapters.Cowboy.http ExCanvas, []
