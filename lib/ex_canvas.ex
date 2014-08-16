@@ -21,18 +21,26 @@ defmodule ExCanvas do
 
   get "/events" do
     Agent.update(:clients, &Set.put(&1, self()))
-    conn
+    conn = conn
     |> put_resp_content_type("text/event-stream")
     |> send_chunked(200)
-    |> canvas_loop
+
+    json = :jsx.encode([x: 50, y: 50, text: "hello"])
+    chunk(conn, ["data: ", json, "\n\n"])
+
+    json = :jsx.encode([x: 70, y: 100, text: "world"])
+    chunk(conn, ["data: ", json, "\n\n"])
+
+    canvas_loop(conn)
   end
 
   defp canvas_loop(conn) do
     receive do
       {:data, data} ->
-        case chunk(conn, ["data: ", data, "\n\n"]) do
+        json = :jsx.encode(data)
+        case chunk(conn, ["data: ", json, "\n\n"]) do
           {:ok, conn} -> canvas_loop(conn)
-          _ -> debug("failed to send chunk: " <> data)
+          _ -> debug("Failed to send event: " <> json); conn
         end
     end
   end

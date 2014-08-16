@@ -15,7 +15,8 @@ defmodule ExCanvas.Mixfile do
 
   defp deps do
     [{:cowboy, "~> 1.0.0"},
-     {:plug, "~> 0.5.3"}]
+     {:plug, "~> 0.5.3"},
+     {:jsx, "~> 2.0.4"}]
   end
 
   defp aliases do
