@@ -21,6 +21,6 @@ defmodule ExCanvas.Mixfile do
 
   defp aliases do
     [r: "run --no-halt -e ExCanvas.main",
-     c: "run -e ExCanvasClient.send(:test)"]
+     c: "run -e ExCanvasClient.send(~s(test))"]
   end
 end
