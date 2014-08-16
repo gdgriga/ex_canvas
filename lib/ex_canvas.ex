@@ -10,7 +10,17 @@ defmodule ExCanvas do
 
   def init(opts) do
     Agent.start(fn -> HashSet.new end, name: :clients)
+    Process.register(spawn(&say/0), :ex_canvas_say)  # send({:ex_canvas_say, Node}, msg)
+    info("Running on http://localhost:4000")
     opts
+  end
+
+  defp say do
+    receive do
+      msg ->
+        Agent.cast(:clients, &Enum.each(&1, fn client_pid -> send(client_pid, msg) end))
+        say
+    end
   end
 
   get "/" do
@@ -34,6 +44,17 @@ defmodule ExCanvas do
     canvas_loop(conn)
   end
 
+  put "/say" do
+    {msg, conn} = case read_body(conn) do
+      {:ok, msg, conn}   -> {msg, conn}
+      {:more, msg, conn} -> {"#{msg}...", conn}
+      {:error, reason}   -> {"error: #{reason}", conn}
+    end
+    debug("/say read: '#{msg}'")
+    send(:ex_canvas_say, msg)
+    send_resp(conn, 201, "message queued\n")
+  end
+
   defp canvas_loop(conn) do
     receive do
       {:data, data} ->
@@ -46,9 +67,8 @@ defmodule ExCanvas do
   end
 
   match _ do
-    send_resp(conn, 404, "not found")
+    send_resp(conn, 404, "not found\n")
   end
 end
 
-info("Running on http://localhost:4000")
 Plug.Adapters.Cowboy.http ExCanvas, []
