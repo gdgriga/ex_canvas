@@ -1,5 +1,3 @@
-import Logger
-
 defmodule ExCanvasClient do
   def send(msg) do
     Node.start(:client, :shortnames)
