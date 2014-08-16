@@ -1,3 +1,5 @@
+import Logger
+
 defmodule ExCanvas do
   import Plug.Conn
   use Plug.Router
@@ -17,5 +19,5 @@ defmodule ExCanvas do
   end
 end
 
-IO.puts "Running on http://localhost:4000"
+info "Running on http://localhost:4000"
 Plug.Adapters.Cowboy.http ExCanvas, []
