@@ -8,6 +8,11 @@ defmodule ExCanvas do
   plug :match
   plug :dispatch
 
+  def init(opts) do
+    Agent.start(fn -> HashSet.new end, name: :clients)
+    opts
+  end
+
   get "/" do
     conn
     |> put_resp_content_type("text/html")
@@ -15,18 +20,11 @@ defmodule ExCanvas do
   end
 
   get "/events" do
+    Agent.update(:clients, &Set.put(&1, self()))
     conn
     |> put_resp_content_type("text/event-stream")
     |> send_chunked(200)
-    |> send_events
-  end
-
-  defp send_events(conn) do
-    pid = spawn(fn -> canvas_loop(conn) end)
-    send(pid, {:data, "-1hello"})
-    send(pid, {:data, "-2hello"})
-    send(pid, {:data, "-3hello"})
-    conn
+    |> canvas_loop
   end
 
   defp canvas_loop(conn) do

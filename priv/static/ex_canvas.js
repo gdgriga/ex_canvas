@@ -15,8 +15,8 @@
 
     var evt = new EventSource('/events');
     evt.onmessage = function(e) {
-        var x = Math.random() * 200;
-        var y = Math.random() * 200;
+        var x = Math.random() * canvas.width;
+        var y = Math.random() * canvas.height;
         ctx.fillText(e.data, x, y);
     };
 
