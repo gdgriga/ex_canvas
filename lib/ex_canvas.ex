@@ -45,6 +45,8 @@ defmodule ExCanvas do
   get "/events" do
     pid = self()
     Agent.update(:clients, &Set.put(&1, pid))
+    count = Agent.get(:clients, &Enum.count(&1))
+    debug("Connected: #{count} client(s)")
     conn
     |> put_resp_content_type("text/event-stream")
     |> send_chunked(200)
@@ -56,9 +58,14 @@ defmodule ExCanvas do
       {:json, json} ->
         case chunk(conn, "data: #{json}\n\n") do
           {:ok, conn} -> canvas_loop(conn)
-          _ -> debug("Failed to send: #{json}"); conn
+          _ -> debug("Failed to send: #{json}"); disconnect(); conn
         end
     end
+  end
+
+  defp disconnect do
+    pid = self()
+    Agent.update(:clients, &Set.delete(&1, pid))
   end
 
   match _ do
