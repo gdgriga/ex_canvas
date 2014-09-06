@@ -15,7 +15,10 @@ defmodule ExCanvas do
   def init(opts) do
     Agent.start(fn -> HashSet.new end, name: :clients)
     Process.register(spawn(&client_cast/0), :ex_canvas_say)
-    Node.start(:server, :shortnames)
+    case Node.start(:server, :shortnames) do
+      {:ok, pid} -> info("Started distributed node.")
+      {:error, term} -> error("Failed to start. Is `epmd -daemon` running?")
+    end
     Node.set_cookie(:ex_canvas_cookie)
     info("Running on http://localhost:4000")
     opts
@@ -23,11 +26,13 @@ defmodule ExCanvas do
 
   defp client_cast do
     receive do
-      msg ->
+      {:data, data} ->
+        json = :jsx.encode(data)
         clients = Agent.get(:clients, fn id -> id end)
-        debug("Sending to #{Enum.count(clients)} client(s)")
-        Enum.each(clients, &send(&1, msg))
+        debug("Sending to #{Enum.count(clients)} client(s): #{json}")
+        Enum.each(clients, &send(&1, {:json, json}))
         client_cast
+      _ -> :ok
     end
   end
 
@@ -48,24 +53,12 @@ defmodule ExCanvas do
 
   defp canvas_loop(conn) do
     receive do
-      {:data, data} ->
-        json = :jsx.encode(data)
-        debug("Sending to client: #{json}")
+      {:json, json} ->
         case chunk(conn, "data: #{json}\n\n") do
           {:ok, conn} -> canvas_loop(conn)
-          _ -> debug("Failed to send event: #{json}"); conn
+          _ -> debug("Failed to send: #{json}"); conn
         end
     end
-  end
-
-  put "/say" do
-    {text, conn} = case read_body(conn) do
-      {:ok, msg, conn}   -> {msg, conn}
-      {:more, msg, conn} -> {"#{msg}...", conn}
-      {:error, reason}   -> {"error: #{reason}", conn}
-    end
-    send(:ex_canvas_say, {:data, [x: 100, y: 100, text: text]})
-    send_resp(conn, 201, "message queued\n")
   end
 
   match _ do
