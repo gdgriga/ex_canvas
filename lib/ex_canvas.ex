@@ -15,6 +15,7 @@ defmodule ExCanvas do
   def init(opts) do
     Agent.start(fn -> HashSet.new end, name: :clients)
     Process.register(spawn(&client_cast/0), :ex_canvas_say)
+    System.cmd("epmd", ["-daemon"])
     case Node.start(:server, :shortnames) do
       {:ok, pid} -> info("Started distributed node.")
       {:error, term} -> error("Failed to start. Is `epmd -daemon` running?")
