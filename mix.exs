@@ -4,7 +4,7 @@ defmodule ExCanvas.Mixfile do
   def project do
     [app: :ex_canvas,
      version: "0.0.1",
-     elixir: ">= 1.0.0-rc2",
+     elixir: "~> 1.0.0",
      deps: deps,
      aliases: aliases]
   end
