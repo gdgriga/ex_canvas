@@ -12,11 +12,6 @@
     var ctx = canvas.getContext('2d');
     ctx.font = '2rem sans-serif';
 
-    var cleanUp = function() {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-    };
-    window.setInterval(cleanUp, 10000);
-
     var evt = new EventSource('/events');
     evt.onmessage = function(e) {
         var msg = JSON.parse(e.data);
@@ -51,5 +46,17 @@
         ctx.fillStyle = color || DEFAULT_COLOR;
         ctx.fillText(text, x, y);
     };
+
+    var refresh = 10;
+    var current = 0;
+    window.setInterval(function() {
+        if (++current === refresh) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            current = 0;
+        } else {
+            ctx.clearRect(0, 0, 50, 50);
+            commands.text(20, 50, refresh - current, '#fff');
+        }
+    }, 1000);
 
 }());
