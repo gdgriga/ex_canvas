@@ -55,7 +55,7 @@
             current = 0;
         } else {
             ctx.clearRect(0, 0, 50, 50);
-            commands.text(20, 50, refresh - current, '#fff');
+            commands.text(20, 45, refresh - current, '#fff');
         }
     }, 1000);
 
