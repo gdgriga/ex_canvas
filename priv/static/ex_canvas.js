@@ -12,6 +12,11 @@
     var ctx = canvas.getContext('2d');
     ctx.font = '2rem sans-serif';
 
+    var cleanUp = function() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+    };
+    window.setInterval(cleanUp, 10000);
+
     var evt = new EventSource('/events');
     evt.onmessage = function(e) {
         var msg = JSON.parse(e.data);
